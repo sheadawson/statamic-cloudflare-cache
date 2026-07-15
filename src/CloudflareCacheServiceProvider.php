@@ -2,21 +2,20 @@
 
 namespace Eminos\StatamicCloudflareCache;
 
-use Statamic\Providers\AddonServiceProvider;
 use Eminos\StatamicCloudflareCache\Commands\PurgeCache;
 use Eminos\StatamicCloudflareCache\Listeners\PurgeCloudflareCache;
-use Statamic\Events\EntrySaved;
-use Statamic\Events\EntryDeleted;
-use Statamic\Events\TermSaved;
-use Statamic\Events\TermDeleted;
-use Statamic\Events\AssetSaved;
 use Statamic\Events\AssetDeleted;
+use Statamic\Events\AssetSaved;
 use Statamic\Events\CollectionTreeSaved;
+use Statamic\Events\EntryDeleted;
+use Statamic\Events\EntrySaved;
+use Statamic\Events\GlobalVariablesSaved;
 use Statamic\Events\NavTreeSaved;
-use Statamic\Events\GlobalSetSaved;
-use Statamic\Events\GlobalSetDeleted;
-use Statamic\Events\UrlInvalidated;
 use Statamic\Events\StaticCacheCleared;
+use Statamic\Events\TermDeleted;
+use Statamic\Events\TermSaved;
+use Statamic\Events\UrlInvalidated;
+use Statamic\Providers\AddonServiceProvider;
 
 class CloudflareCacheServiceProvider extends AddonServiceProvider
 {
@@ -49,10 +48,7 @@ class CloudflareCacheServiceProvider extends AddonServiceProvider
         NavTreeSaved::class => [
             PurgeCloudflareCache::class,
         ],
-        GlobalSetSaved::class => [
-            PurgeCloudflareCache::class,
-        ],
-        GlobalSetDeleted::class => [
+        GlobalVariablesSaved::class => [
             PurgeCloudflareCache::class,
         ],
         UrlInvalidated::class => [
@@ -65,8 +61,6 @@ class CloudflareCacheServiceProvider extends AddonServiceProvider
 
     /**
      * Register the application services.
-     *
-     * @return void
      */
     public function register(): void
     {
@@ -77,8 +71,6 @@ class CloudflareCacheServiceProvider extends AddonServiceProvider
 
     /**
      * Bootstrap the application services.
-     *
-     * @return void
      */
     public function boot(): void
     {

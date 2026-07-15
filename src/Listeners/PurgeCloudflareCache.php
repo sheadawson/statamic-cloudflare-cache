@@ -3,23 +3,22 @@
 namespace Eminos\StatamicCloudflareCache\Listeners;
 
 use Eminos\StatamicCloudflareCache\Events\CachePurged;
-use Eminos\StatamicCloudflareCache\Jobs\PurgeCloudflareCacheJob; // Updated job import namespace
-use Eminos\StatamicCloudflareCache\Http\Client; // Updated client import namespace
-use Statamic\Events\Event;
-use Statamic\Events\EntrySaved;
-use Statamic\Events\EntryDeleted;
-use Statamic\Events\TermSaved;
-use Statamic\Events\TermDeleted;
-use Statamic\Events\AssetSaved;
+use Eminos\StatamicCloudflareCache\Http\Client; // Updated job import namespace
+use Eminos\StatamicCloudflareCache\Jobs\PurgeCloudflareCacheJob; // Updated client import namespace
+use Illuminate\Support\Facades\Log;
 use Statamic\Events\AssetDeleted;
+use Statamic\Events\AssetSaved;
 use Statamic\Events\CollectionTreeSaved;
+use Statamic\Events\EntryDeleted;
+use Statamic\Events\EntrySaved;
+use Statamic\Events\Event;
+use Statamic\Events\GlobalVariablesSaved;
 use Statamic\Events\NavTreeSaved;
-use Statamic\Events\GlobalSetSaved;
-use Statamic\Events\GlobalSetDeleted;
-use Statamic\Events\UrlInvalidated;
 use Statamic\Events\StaticCacheCleared;
-use Statamic\Facades\URL;
-use Illuminate\Support\Facades\Log; // Already present, but good to confirm
+use Statamic\Events\TermDeleted;
+use Statamic\Events\TermSaved;
+use Statamic\Events\UrlInvalidated;
+use Statamic\Facades\URL; // Already present, but good to confirm
 
 class PurgeCloudflareCache
 {
@@ -32,16 +31,17 @@ class PurgeCloudflareCache
 
     public function handle(Event $event): void
     {
-        if (!config('cloudflare-cache.enabled')) {
+        if (! config('cloudflare-cache.enabled')) {
             if (config('cloudflare-cache.debug')) {
                 Log::debug('[Cloudflare Cache] Skipping purge because addon is disabled.', [
                     'event' => get_class($event),
                 ]);
             }
+
             return;
         }
 
-        if (!$this->shouldHandleEvent($event)) {
+        if (! $this->shouldHandleEvent($event)) {
             return;
         }
 
@@ -64,10 +64,10 @@ class PurgeCloudflareCache
     {
         $jobPayload = null;
 
-        if (!empty($urls) && config('cloudflare-cache.purge_urls')) {
+        if (! empty($urls) && config('cloudflare-cache.purge_urls')) {
             $jobPayload = $urls;
             if (config('cloudflare-cache.debug')) {
-                Log::debug('[Cloudflare Cache] Dispatching job to purge URLs: ' . implode(', ', $urls));
+                Log::debug('[Cloudflare Cache] Dispatching job to purge URLs: '.implode(', ', $urls));
             }
         } elseif (config('cloudflare-cache.purge_everything_fallback')) {
             if (config('cloudflare-cache.debug')) {
@@ -77,6 +77,7 @@ class PurgeCloudflareCache
             if (config('cloudflare-cache.debug')) {
                 Log::debug('[Cloudflare Cache] Skipping job dispatch (no URLs and fallback disabled).');
             }
+
             return;
         }
 
@@ -89,12 +90,13 @@ class PurgeCloudflareCache
             Log::debug('[Cloudflare Cache] Performing synchronous purge.');
         }
 
-        if (!empty($urls) && config('cloudflare-cache.purge_urls')) {
+        if (! empty($urls) && config('cloudflare-cache.purge_urls')) {
             if (config('cloudflare-cache.debug')) {
-                Log::debug('[Cloudflare Cache] Synchronously purging URLs: ' . implode(', ', $urls));
+                Log::debug('[Cloudflare Cache] Synchronously purging URLs: '.implode(', ', $urls));
             }
             $this->client->purgeUrls($urls);
             event(new CachePurged($urls, false));
+
             return;
         }
 
@@ -110,8 +112,7 @@ class PurgeCloudflareCache
     /**
      * Determine if we should handle this event based on configuration.
      *
-     * @param Event $event The Statamic event triggered.
-     * @return bool
+     * @param  Event  $event  The Statamic event triggered.
      */
     protected function shouldHandleEvent(Event $event): bool
     {
@@ -119,21 +120,23 @@ class PurgeCloudflareCache
         $isStaticCacheInvalidationEvent = $event instanceof UrlInvalidated || $event instanceof StaticCacheCleared;
         $eventClass = get_class($event);
 
-        if ($useStatamicInvalidation && !$isStaticCacheInvalidationEvent) {
+        if ($useStatamicInvalidation && ! $isStaticCacheInvalidationEvent) {
             if (config('cloudflare-cache.debug')) {
                 Log::debug('[Cloudflare Cache] Skipping event because Statamic static cache invalidation mode is enabled and this is a legacy addon event.', [
                     'event' => $eventClass,
                 ]);
             }
+
             return false;
         }
 
-        if (!$useStatamicInvalidation && $isStaticCacheInvalidationEvent) {
+        if (! $useStatamicInvalidation && $isStaticCacheInvalidationEvent) {
             if (config('cloudflare-cache.debug')) {
                 Log::debug('[Cloudflare Cache] Skipping event because Statamic static cache invalidation mode is disabled.', [
                     'event' => $eventClass,
                 ]);
             }
+
             return false;
         }
 
@@ -146,26 +149,26 @@ class PurgeCloudflareCache
             'Statamic\Events\AssetDeleted' => 'asset_deleted',
             'Statamic\Events\CollectionTreeSaved' => 'collection_tree_saved',
             'Statamic\Events\NavTreeSaved' => 'nav_tree_saved',
-            'Statamic\Events\GlobalSetSaved' => 'global_set_saved',
-            'Statamic\Events\GlobalSetDeleted' => 'global_set_deleted',
+            'Statamic\Events\GlobalVariablesSaved' => 'global_variables_saved',
             'Statamic\Events\UrlInvalidated' => 'url_invalidated',
             'Statamic\Events\StaticCacheCleared' => 'static_cache_cleared',
         ];
 
         $configKey = $eventMap[$eventClass] ?? null;
 
-        if (!$configKey) {
+        if (! $configKey) {
             if (config('cloudflare-cache.debug')) {
                 Log::debug('[Cloudflare Cache] Skipping event because no purge_on mapping exists.', [
                     'event' => $eventClass,
                 ]);
             }
+
             return false;
         }
 
         $shouldHandle = (bool) config("cloudflare-cache.purge_on.{$configKey}");
 
-        if (!$shouldHandle && config('cloudflare-cache.debug')) {
+        if (! $shouldHandle && config('cloudflare-cache.debug')) {
             Log::debug('[Cloudflare Cache] Skipping event because purge_on setting is disabled.', [
                 'event' => $eventClass,
                 'config_key' => "cloudflare-cache.purge_on.{$configKey}",
@@ -178,7 +181,7 @@ class PurgeCloudflareCache
     /**
      * Get URLs to purge based on the event's subject (Entry, Term, Asset).
      *
-     * @param Event $event The Statamic event triggered.
+     * @param  Event  $event  The Statamic event triggered.
      * @return array An array of absolute URLs to purge.
      */
     protected function getUrlsToPurge(Event $event): array
@@ -228,8 +231,8 @@ class PurgeCloudflareCache
             // If purge_everything_fallback is disabled, this will do nothing (intended behavior)
         }
 
-        if ($event instanceof GlobalSetSaved || $event instanceof GlobalSetDeleted) {
-            // Global sets can affect many pages (headers, footers, shared blocks, etc.).
+        if ($event instanceof GlobalVariablesSaved) {
+            // Global variables can affect many pages (headers, footers, shared blocks, etc.).
             // We intentionally do not return any URLs here so the listener follows the
             // existing purge_everything_fallback logic (sync or queued).
         }
