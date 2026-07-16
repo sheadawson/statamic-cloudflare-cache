@@ -45,9 +45,14 @@ return [
         'asset_deleted' => true,
         'collection_tree_saved' => true,
         'nav_tree_saved' => true,
-        'global_set_saved' => true,
-        'global_set_deleted' => true,
+        'global_variables_saved' => true,
+        'url_invalidated' => true, // Statamic Static Cache: UrlInvalidated event
+        'static_cache_cleared' => true, // Statamic Static Cache: StaticCacheCleared event
     ],
+
+    // When enabled, only Statamic Static Cache events are handled (UrlInvalidated/StaticCacheCleared).
+    // Legacy addon content events are skipped in this mode.
+    'use_statamic_static_cache_invalidation' => env('CLOUDFLARE_CACHE_USE_STATAMIC_STATIC_CACHE_INVALIDATION', false),
 
     'queue_purge' => env('CLOUDFLARE_CACHE_QUEUE_PURGE', false), // Dispatch purge jobs to the queue
     

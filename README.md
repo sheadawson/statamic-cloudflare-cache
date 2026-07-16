@@ -7,6 +7,7 @@ Automatically purge your Cloudflare cache when content changes in Statamic.
 - Automatically purges Cloudflare cache when Statamic content changes.
 - **Multi-zone support** for Statamic multisite installations with different domains.
 - Configurable events that trigger cache purging.
+- Optional support for Statamic `static_caching` invalidation rules via `UrlInvalidated`/`StaticCacheCleared` events.
 - Optional queuing of purge jobs for background processing.
 - CLI command for manual cache purging.
 - Simple configuration with backward compatibility.
@@ -79,6 +80,11 @@ Once configured, the addon will automatically purge the Cloudflare cache when co
 
 You can configure which events trigger cache purging in the config file.
 
+#### Event handling modes (either/or)
+
+- **Default (`use_statamic_static_cache_invalidation = false`)**: uses this addon’s own content events (`entry_*`, `term_*`, `asset_*`, etc.).
+- **Statamic static cache mode (`use_statamic_static_cache_invalidation = true`)**: uses Statamic Static Cache events (`url_invalidated`, `static_cache_cleared`) and skips the addon’s legacy content events.
+
 #### Queued Purging
 
 If you prefer to handle cache purging in the background to avoid potential delays during web requests, you can enable queued purging. Set the `CLOUDFLARE_CACHE_QUEUE_PURGE` environment variable to `true` or set `'queue_purge' => true` in the configuration file.
@@ -101,7 +107,15 @@ php please cloudflare:purge --zone=zone_id_123
 
 # Purge specific domain (requires multi-zone configuration)
 php please cloudflare:purge --domain=example.fr
+
+# Purge by cache tag (requires responses to send a Cache-Tag header)
+php please cloudflare:purge --tag=my-tag
+
+# Purge multiple tags at once
+php please cloudflare:purge --tag=pages --tag=listings
 ```
+
+The `--url`, `--zone`, `--domain`, and `--tag` options are mutually exclusive — provide only one purge target per invocation.
 
 ## Advanced Configuration
 
@@ -134,9 +148,14 @@ return [
         'asset_deleted' => true,
         'collection_tree_saved' => true,
         'nav_tree_saved' => true,
-        'global_set_saved' => true,
-        'global_set_deleted' => true,
+        'global_variables_saved' => true,
+        'url_invalidated' => true, // Statamic Static Cache: UrlInvalidated event
+        'static_cache_cleared' => true, // Statamic Static Cache: StaticCacheCleared event
     ],
+
+    // When enabled, only Statamic Static Cache events are handled (UrlInvalidated/StaticCacheCleared).
+    // Legacy addon content events are skipped in this mode.
+    'use_statamic_static_cache_invalidation' => env('CLOUDFLARE_CACHE_USE_STATAMIC_STATIC_CACHE_INVALIDATION', false),
 
     // Dispatch purge jobs to the queue instead of running synchronously
     'queue_purge' => env('CLOUDFLARE_CACHE_QUEUE_PURGE', false),
