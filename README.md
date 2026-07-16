@@ -107,7 +107,15 @@ php please cloudflare:purge --zone=zone_id_123
 
 # Purge specific domain (requires multi-zone configuration)
 php please cloudflare:purge --domain=example.fr
+
+# Purge by cache tag (requires responses to send a Cache-Tag header)
+php please cloudflare:purge --tag=my-tag
+
+# Purge multiple tags at once
+php please cloudflare:purge --tag=pages --tag=listings
 ```
+
+The `--url`, `--zone`, `--domain`, and `--tag` options are mutually exclusive — provide only one purge target per invocation.
 
 ## Advanced Configuration
 

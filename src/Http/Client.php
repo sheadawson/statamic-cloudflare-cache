@@ -70,6 +70,36 @@ class Client
         return $success;
     }
     
+    public function purgeTags(array $tags): bool
+    {
+        $tags = array_values(array_filter($tags));
+
+        if (empty($tags)) {
+            return false;
+        }
+
+        $zones = $this->getAllConfiguredZones();
+
+        if (empty($zones)) {
+            // Fallback to single zone
+            return $this->requestWithZone($this->zoneId, 'purge_cache', [
+                'tags' => $tags,
+            ]);
+        }
+
+        // Purge the tags in all configured zones
+        $success = true;
+        foreach ($zones as $zoneId) {
+            if (!$this->requestWithZone($zoneId, 'purge_cache', [
+                'tags' => $tags,
+            ])) {
+                $success = false;
+            }
+        }
+
+        return $success;
+    }
+
     public function purgeEverythingForZone(?string $zoneId = null): bool
     {
         $zoneId = $zoneId ?: $this->zoneId;

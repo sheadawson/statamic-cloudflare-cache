@@ -10,10 +10,11 @@ class PurgeCache extends Command
 {
     use RunsInPlease;
 
-    protected $signature = 'cloudflare:purge 
+    protected $signature = 'cloudflare:purge
                             {--url= : Specific URL to purge}
                             {--zone= : Specific zone ID to purge (purges everything in that zone)}
-                            {--domain= : Specific domain to purge (purges everything for that domain)}';
+                            {--domain= : Specific domain to purge (purges everything for that domain)}
+                            {--tag=* : Cache tag(s) to purge (repeat the option for multiple tags)}';
 
     protected $description = 'Purge Cloudflare cache';
 
@@ -35,9 +36,27 @@ class PurgeCache extends Command
         $url = $this->option('url');
         $zoneId = $this->option('zone');
         $domain = $this->option('domain');
+        $tags = array_values(array_filter($this->option('tag')));
 
+        $providedOptions = array_keys(array_filter([
+            '--url' => $url,
+            '--zone' => $zoneId,
+            '--domain' => $domain,
+            '--tag' => $tags,
+        ]));
+
+        if (count($providedOptions) > 1) {
+            $this->error('The ' . implode(', ', $providedOptions) . ' options cannot be combined. Provide only one purge target.');
+            return 1;
+        }
+
+        // Handle cache tag purging
+        if (!empty($tags)) {
+            $this->info('Purging cache for tag(s): ' . implode(', ', $tags));
+            $result = $this->client->purgeTags($tags);
+        }
         // Handle specific URL purging
-        if ($url) {
+        elseif ($url) {
             $this->info("Purging cache for URL: {$url}");
             $result = $this->client->purgeUrls([$url]);
         }
